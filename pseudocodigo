@@ -1,0 +1,212 @@
+algoritmo ArvoreBMais
+
+// Definição da estrutura No
+tipo No
+    inteiro[] chaves          // Array de chaves
+    No[] filhos               // Array de filhos
+    logico ehFolha            // Indica se é nó folha
+    No proximo                // Ponteiro para próximo nó (usado em folhas)
+fimtipo
+
+// Variáveis globais
+No raiz                      // Raiz da árvore
+inteiro grau                 // Grau da árvore (ordem)
+constante inteiro MIN_CHAVES = 1  // Mínimo de chaves em nó não-raiz
+
+// Procedimento principal
+procedimento inicio()
+    // Inicialização da árvore
+    grau <- 4  // Define grau da árvore
+    raiz <- criarNo(verdadeiro)  // Cria nó raiz como folha
+    
+    // Testes de inserção
+    inserir(10)
+    inserir(20)
+    inserir(5)
+    inserir(6)
+    inserir(12)
+    inserir(30)
+    inserir(7)
+    inserir(17)
+    
+    // Testes de busca e remoção
+    imprimir("Busca 6:", buscar(6))
+    imprimir("Busca 15:", buscar(15))
+    remover(6)
+    imprimirArvore()
+fimprocedimento
+
+// Função para criar novo nó
+funcao No criarNo(logico ehFolha)
+    No novoNo
+    novoNo.chaves <- novo inteiro[grau-1]
+    novoNo.filhos <- novo No[grau]
+    novoNo.ehFolha <- ehFolha
+    novoNo.proximo <- nulo
+    retorna novoNo
+fimfuncao
+
+// Função de busca
+funcao logico buscar(inteiro chave)
+    No atual <- raiz
+    
+    // Desce a árvore até encontrar uma folha
+    enquanto nao atual.ehFolha faca
+        inteiro i <- 0
+        // Procura a posição correta no nó atual
+        enquanto i < tamanho(atual.chaves) e chave >= atual.chaves[i] faca
+            i <- i + 1
+        fimenquanto
+        atual <- atual.filhos[i]
+    fimenquanto
+    
+    // Busca a chave no nó folha
+    retorna existe(atual.chaves, chave)
+fimfuncao
+
+// Procedimento de inserção
+procedimento inserir(inteiro chave)
+    // Verifica se a raiz está cheia
+    se tamanho(raiz.chaves) = grau-1 entao
+        No novaRaiz <- criarNo(falso)
+        novaRaiz.filhos[0] <- raiz
+        dividirFilho(novaRaiz, 0)
+        raiz <- novaRaiz
+    fimse
+    
+    inserirNaoCheio(raiz, chave)
+fimprocedimento
+
+// Procedimento para inserir em nó não cheio
+procedimento inserirNaoCheio(No no, inteiro chave)
+    se no.ehFolha entao
+        // Insere ordenadamente no nó folha
+        inteiro i <- tamanho(no.chaves) - 1
+        
+        // Move chaves maiores para direita
+        enquanto i >= 0 e chave < no.chaves[i] faca
+            no.chaves[i+1] <- no.chaves[i]
+            i <- i - 1
+        fimenquanto
+        
+        no.chaves[i+1] <- chave
+    senao
+        // Encontra filho apropriado
+        inteiro i <- tamanho(no.chaves) - 1
+        enquanto i >= 0 e chave < no.chaves[i] faca
+            i <- i - 1
+        fimenquanto
+        i <- i + 1
+        
+        // Verifica se filho está cheio
+        se tamanho(no.filhos[i].chaves) = grau-1 entao
+            dividirFilho(no, i)
+            se chave > no.chaves[i] entao
+                i <- i + 1
+            fimse
+        fimse
+        
+        inserirNaoCheio(no.filhos[i], chave)
+    fimse
+fimprocedimento
+
+// Procedimento para dividir um nó filho
+procedimento dividirFilho(No pai, inteiro indice)
+    No filho <- pai.filhos[indice]
+    No novoFilho <- criarNo(filho.ehFolha)
+    inteiro meio <- (grau-1) div 2
+    
+    // Caso especial para nós folha
+    se filho.ehFolha entao
+        // Copia metade das chaves para novo nó
+        para i de meio ate tamanho(filho.chaves)-1 faca
+            novoFilho.chaves[i-meio] <- filho.chaves[i]
+        fimpara
+        
+        // Remove chaves copiadas do nó original
+        para i de meio ate tamanho(filho.chaves)-1 faca
+            remover filho.chaves[meio]
+        fimpara
+        
+        // Atualiza ponteiros da lista ligada
+        novoFilho.proximo <- filho.proximo
+        filho.proximo <- novoFilho
+        
+        // Adiciona chave separadora no pai
+        inserirEm(pai.chaves, indice, novoFilho.chaves[0])
+    senao
+        // Para nós internos
+        // Copia chaves do meio+1 até o final
+        para i de meio+1 ate tamanho(filho.chaves)-1 faca
+            novoFilho.chaves[i-(meio+1)] <- filho.chaves[i]
+        fimpara
+        
+        // Copia filhos correspondentes
+        para i de meio+1 ate tamanho(filho.filhos)-1 faca
+            novoFilho.filhos[i-(meio+1)] <- filho.filhos[i]
+        fimpara
+        
+        // Remove chaves e filhos copiados do nó original
+        para i de meio+1 ate tamanho(filho.chaves)-1 faca
+            remover filho.chaves[meio+1]
+            remover filho.filhos[meio+1]
+        fimpara
+        
+        // Move chave do meio para o pai
+        inserirEm(pai.chaves, indice, filho.chaves[meio])
+        remover filho.chaves[meio]
+    fimse
+    
+    // Adiciona novo filho ao pai
+    inserirEm(pai.filhos, indice+1, novoFilho)
+fimprocedimento
+
+// Procedimento para remover uma chave
+procedimento remover(inteiro chave)
+    se raiz = nulo entao
+        retorna
+    fimse
+    
+    removerRecursivo(raiz, chave)
+    
+    // Se raiz ficou vazia e não é folha, atualiza raiz
+    se tamanho(raiz.chaves) = 0 e nao raiz.ehFolha entao
+        raiz <- raiz.filhos[0]
+    fimse
+fimprocedimento
+
+// Procedimento auxiliar para imprimir a árvore
+procedimento imprimirArvore()
+    imprimirNivel(raiz, 0)
+    imprimirFolhas()
+fimprocedimento
+
+procedimento imprimirNivel(No no, inteiro nivel)
+    escreva("Nível ", nivel, ": ")
+    para cada chave em no.chaves faca
+        escreva(chave, " ")
+    fimpara
+    escreva(no.ehFolha ? " (folha)" : " (interno)")
+    escreval()
+    
+    se nao no.ehFolha entao
+        para cada filho em no.filhos faca
+            imprimirNivel(filho, nivel + 1)
+        fimpara
+    fimse
+fimprocedimento
+
+procedimento imprimirFolhas()
+    No atual <- encontrarPrimeiraFolha(raiz)
+    escreva("Folhas conectadas: ")
+    enquanto atual <> nulo faca
+        para cada chave em atual.chaves faca
+            escreva(chave, " ")
+        fimpara
+        escreva("-> ")
+        atual <- atual.proximo
+    fimenquanto
+    escreval("nulo")
+fimprocedimento
+
+fimalgoritmo
